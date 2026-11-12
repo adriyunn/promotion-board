@@ -41,7 +41,7 @@ The user sent screenshots of the "Next Rank" app as the reference for structure:
 
 ## Constraints
 
-- **Public hosting:** the user chose GitHub Pages, which requires making the repo `adriyunn/promotion-board` public. The user makes that visibility change and enables Pages in repo settings. The app must contain **no personal info**: no user name, and the chain-of-command and board-member blanks stay blank in the public code. Anything the user enters, and all progress, is kept only on the phone (localStorage).
+- **Public hosting:** the user chose GitHub Pages and will make this repo (`adriyunn/promotion-board`) public and enable Pages in its settings. **The user confirmed that publishing everything in the repo is fine**, including the PDF, guide source, this spec, and their own details (rank, MOS, position, job history). No scrubbing is needed. Only things the user enters in the app (chain-of-command names) and their progress stay on the phone (localStorage).
 - **Offline:** the website should work offline after the first load (a service worker caches the app shell and data). The single-file version must work fully from a downloaded file. Known risk: iOS may not keep localStorage for `file://` pages, so progress may reset there. Tell the user. It's a backup.
 - **Phone-first:** a single-column layout for an iPhone-width screen. Large tap targets. It can be added to the home screen (web app manifest and icons).
 - **Single source of truth:** questions and library text come from the guide content in this repo. If the guide changes, rebuilding the app updates it.
@@ -79,6 +79,13 @@ Categories for the topics list (color bar per category, like the reference):
 ## Question bank
 
 Each item has: `id`, `section`, `category`, `question`, `answer` (the model answer, from the guide), `ref` (publication, if the guide gives one), `tags` (verify / local / must), `modes` (mc+typed, or typed-only), and for MC items, `choices` with **3 hand-written wrong answers** that are real confusions (for example AR 600-20 vs AR 600-52 vs AR 600-8-22), never obvious fakes. Sources: every guide Q&A (`.qa` blocks, about 164) and the 21 situational scenarios (typed-only). Items whose answer is too long for a clean MC option (e.g. the full TLP list) can be offered as MC with short options or as typed-only. That's the builder's call.
+
+## Decisions made after the builder check (calls by Claude, user can correct)
+
+- **Section 0 corrections become questions.** The 13 "Fixed" items in `start.html` become MC and typed questions under a **Corrections** category on the Topics list. Day 1 of the Home plan ("Sec 0 corrections") points there.
+- **Must-know review.** The Library gets a "Must know" list: every fact, callout and creed the guide tags *Must know*, pulled from the guide, for the 19 Nov review day. Q&As aren't force-tagged `must`. A question carries `must` only when its answer comes straight from a Must-know fact.
+- **Chain of command fill-in.** The Library's Chain of Command page has editable fields for the blank cells in `coc.html` (CoC, NCO support channel, board members), saved only in localStorage. The "write your version here" self-introduction box also becomes a free-text field saved locally. Typed entries don't generate questions.
+- **Site location.** The app is served from `/docs` (`docs/index.html`). The spec under `docs/superpowers/` will also be publicly reachable, which the user accepted.
 
 ## Left to the builder
 
