@@ -178,3 +178,5 @@ nav.tabs a.active { color: var(--gold); }
 .lib .check { list-style: none; padding-left: 0; }
 .lib .check li::before { content: "☐ "; color: var(--gold); }
 .lib textarea { margin-top: 6px; }
+.choice[disabled] { opacity: 1; cursor: default; }
+.choice[disabled]:not(.right):not(.wrong) { opacity: 0.45; }

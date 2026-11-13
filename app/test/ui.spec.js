@@ -10,6 +10,7 @@ const test = (name, fn) => tests.push({ name, fn });
 
 async function open(browser, hash = '#/home', ctxOpts = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, ...ctxOpts });
+  ctx.setDefaultTimeout(5000);
   const page = await ctx.newPage();
   await page.clock.setFixedTime(NOW);
   await page.goto(BASE + hash);
@@ -50,6 +51,71 @@ test('tab bar navigates between the five tabs', async (b) => {
     await page.locator('nav.tabs a', { hasText: name }).click();
     await page.waitForSelector(`[data-view="${view}"]`);
   }
+  await ctx.close();
+});
+
+// ---------- Task 6: session, results, board sim ----------
+test('quick 10 multiple choice runs to a results page', async (b) => {
+  const { ctx, page } = await open(b);
+  await page.getByRole('button', { name: 'Quick 10' }).click();
+  for (let i = 0; i < 10; i++) {
+    await page.waitForSelector('[data-view="session"] .choice');
+    await page.locator('.choice').first().click();
+    await page.getByRole('button', { name: /Next|See results/ }).click();
+  }
+  await page.waitForSelector('[data-view="results"]');
+  assert.match(await page.textContent('[data-view="results"]'), /\/ 10/);
+  await ctx.close();
+});
+
+test('typed answer: empty check reveals model answer; a miss survives reload', async (b) => {
+  const { ctx, page } = await open(b, '#/topic/sharp');
+  await page.getByRole('button', { name: 'Type answers' }).click();
+  await page.waitForSelector('[data-view="session"] textarea');
+  assert.match(await page.textContent('[data-view="session"]'), /Say it out loud first/);
+  await page.getByRole('button', { name: 'Check answer' }).click();
+  assert.match(await page.textContent('[data-view="session"]'), /Model answer/);
+  await page.getByRole('button', { name: /I missed it/ }).click();
+  await page.goto(BASE + '#/home');
+  await page.waitForSelector('[data-view="home"]');
+  assert.ok(await page.getByRole('button', { name: /Missed \(1\)/ }).isVisible());
+  assert.ok(await page.getByRole('button', { name: /Due today \(0\)/ }).isVisible());
+  await ctx.close();
+});
+
+test('favorite toggle in a session shows on home', async (b) => {
+  const { ctx, page } = await open(b);
+  await page.getByRole('button', { name: 'Quick 10' }).click();
+  await page.waitForSelector('[data-view="session"]');
+  await page.getByRole('button', { name: /favorite/i }).click();
+  await page.locator('nav.tabs a', { hasText: 'Home' }).click();
+  await page.waitForSelector('[data-view="home"]');
+  assert.ok(await page.getByRole('button', { name: /Favorites \(1\)/ }).isVisible());
+  await ctx.close();
+});
+
+test('board sim: 15 questions, no answers until review, review grades', async (b) => {
+  const { ctx, page } = await open(b);
+  await page.getByRole('button', { name: /Board Sim/ }).click();
+  for (let i = 0; i < 15; i++) {
+    await page.waitForSelector('[data-view="board"] textarea');
+    const t = await page.textContent('[data-view="board"]');
+    assert.ok(!/Model answer/.test(t), 'answer shown before review');
+    assert.match(t, new RegExp(`${i + 1} / 15`));
+    await page.fill('textarea', 'my answer ' + i);
+    await page.getByRole('button', { name: /Next|Finish/ }).click();
+  }
+  await page.waitForSelector('[data-view="board-review"]');
+  assert.strictEqual(await page.locator('.review-row').count(), 15);
+  assert.match(await page.textContent('[data-view="board-review"]'), /my answer 0/);
+  await page.locator('.review-row').first().getByRole('button', { name: /missed/i }).click();
+  for (let i = 1; i < 15; i++) await page.locator('.review-row').nth(i).getByRole('button', { name: /got it/i }).click();
+  await page.getByRole('button', { name: /See results/ }).click();
+  await page.waitForSelector('[data-view="results"]');
+  assert.match(await page.textContent('[data-view="results"]'), /14\s*\/ 15/);
+  await page.goto(BASE + '#/home');
+  await page.waitForSelector('[data-view="home"]');
+  assert.ok(await page.getByRole('button', { name: /Missed \(1\)/ }).isVisible());
   await ctx.close();
 });
 
