@@ -185,6 +185,56 @@ test('progress: 25 rows and reset clears misses', async (b) => {
   await ctx.close();
 });
 
+// ---------- Task 8: offline, installable, single file ----------
+const path = require('path');
+const SINGLE = 'file://' + path.join(__dirname, '..', '..', 'Steadfast_Board_Prep_offline.html');
+
+test('single offline file opens and runs a quick 10', async (b) => {
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  ctx.setDefaultTimeout(5000);
+  const page = await ctx.newPage();
+  await page.clock.setFixedTime(NOW);
+  await page.goto(SINGLE + '#/home');
+  await page.waitForSelector('[data-view="home"]');
+  await page.getByRole('button', { name: 'Quick 10' }).click();
+  for (let i = 0; i < 10; i++) {
+    await page.waitForSelector('[data-view="session"] .choice');
+    await page.locator('.choice').first().click();
+    await page.locator('.actions .btn.gold').click();
+  }
+  await page.waitForSelector('[data-view="results"]');
+  await ctx.close();
+});
+
+test('website keeps working offline after the first visit', async (b) => {
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  ctx.setDefaultTimeout(8000);
+  const page = await ctx.newPage();
+  await page.goto(BASE + '#/home');
+  await page.waitForSelector('[data-view="home"]');
+  await page.evaluate(() => Promise.race([navigator.serviceWorker.ready, new Promise((_, r) => setTimeout(() => r(new Error('no service worker')), 5000))]));
+  await page.reload();
+  await page.waitForSelector('[data-view="home"]');
+  await ctx.setOffline(true);
+  await page.reload();
+  await page.waitForSelector('[data-view="home"]');
+  await page.goto(BASE + '#/library/sharp');
+  await page.waitForSelector('[data-view="library-page"]');
+  await ctx.close();
+});
+
+test('manifest and icons are linked for add-to-home-screen', async (b) => {
+  const { ctx, page } = await open(b);
+  const href = await page.getAttribute('link[rel="manifest"]', 'href');
+  const res = await page.request.get(BASE + href);
+  const m = await res.json();
+  assert.strictEqual(m.name, 'STEADFAST · Board Prep');
+  assert.strictEqual(m.display, 'standalone');
+  for (const icon of m.icons) assert.strictEqual((await page.request.get(BASE + icon.src)).status(), 200);
+  assert.strictEqual((await page.request.get(BASE + (await page.getAttribute('link[rel="apple-touch-icon"]', 'href')))).status(), 200);
+  await ctx.close();
+});
+
 module.exports = { test, open, BASE, NOW };
 
 if (require.main === module) {

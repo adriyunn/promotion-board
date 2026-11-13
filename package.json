@@ -1,0 +1,12 @@
+{
+  "name": "promotion-board",
+  "private": true,
+  "description": "E-5 promotion board study guide (PDF) and the STEADFAST study app.",
+  "scripts": {
+    "build": "node app/build-data.js && node app/build-sw.js && node app/build-single.js",
+    "build:pdf": "node guide/build.js",
+    "build:icons": "node app/build-icons.js",
+    "test": "node --test \"app/test/*.test.*\" && node app/test/ui.spec.js",
+    "serve": "node app/serve.js"
+  }
+}
