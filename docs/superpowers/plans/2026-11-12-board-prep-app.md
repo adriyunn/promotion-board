@@ -181,3 +181,23 @@
 - [ ] **Step 3:** Implement.
 - [ ] **Step 4:** Run `node --test app/test && node app/test/ui.spec.js` → all PASS. Check the size of the single file (it should be under 1.5 MB).
 - [ ] **Step 5:** Commit `feat: offline PWA and single-file build` and push the branch.
+
+---
+
+## Amendments (2026-11-13, approved): fold into the tasks named
+
+**Task 3 (store): spaced review replaces "3 right in a row."**
+- `record(id: string, correct: boolean, today: string /* 'YYYY-MM-DD' */)`. The item gains `box: 0..3` and `due: string|null`.
+- Wrong → `missed=true, box=1, due=today+1`. Right while `missed` → `box++`. The interval after a right answer is `{2: +2 days, 3: +3 days}`. When `box` passes 3 → `missed=false, due=null, box=0`. Right while not missed → no scheduling change.
+- Add `dueIds(state, today) -> string[]` (missed items with `due <= today`).
+- Tests: wrong on 11-13 → due 11-14. Right on 11-14 → due 11-16. Right on 11-16 → due 11-19. Right on 11-19 → cleared. Wrong at any step → back to box 1, due tomorrow.
+
+**Task 4 (quiz): interleaving and new sources.**
+- `opts.source` adds `'due'`. Shuffled output must avoid the same `section` back to back whenever another section remains (greedy re-order after shuffle).
+- Add `pickBoardSim(bank, rand) -> Turn[]`: 15 typed turns = 13 non-scenario items from at least 8 different sections + 2 scenario items, interleaved.
+- Tests: with 3 sections × 5 items and `count:'all'`, no two adjacent turns share a section. `pickBoardSim` returns 15 typed turns with exactly 2 `scenarios-*` and at least 8 distinct sections.
+
+**Task 5 (Home):** add a **Due today (n)** button (→ session with `source:'due'`, mixed) above Missed, and a **Board Sim** button (→ `#/board`). The countdown uses today's date (on 2026-11-13 it shows `7 DAYS`).
+
+**Task 6 (session):** typed questions show the line **"Say it out loud first, then type or tap Check."** above the textarea. Add the `#/board` view (`docs/js/views/board.js`): a question card with a textarea and **Next →** only, no answer shown. After Q15, the review screen lists each question with "You wrote" and the model answer plus ✅/❌ buttons, which call `store.record`. Then results.
+- Tests: Board Sim shows 15 questions with no "Model answer" text before the review. The review shows 15 rows. Marking one ❌ makes Home show `Due today (0)` and `Missed (1)`.

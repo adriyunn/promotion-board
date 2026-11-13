@@ -93,3 +93,11 @@ Each item has: `id`, `section`, `category`, `question`, `answer` (the model answ
 - How question data is pulled from the guide (extracted by script, or a hand-curated JSON checked against the guide).
 - Writing the MC wrong answers, the session/results screens, the timer (optional, shown but not enforced), animations, and the app name (avoid "Next Rank").
 - Service worker caching strategy.
+
+## Amendment (2026-11-13): study-science features (approved by user)
+
+Based on the study research (practice testing, spaced practice, interleaving, saying answers aloud, mock boards):
+1. **Spaced review.** A missed question comes back the next day, then 2 days later, then 3 days later. After three correct spaced reviews in a row it's cleared. Home shows a **Due today** button. This replaces the plain "3 right in a row" rule.
+2. **Mixed topics by default.** Quick 10 and Full Session shuffle across sections and avoid two questions from the same section back to back when possible.
+3. **"Say it out loud first"** prompt on every typed question. No audio.
+4. **Board Simulation.** 15 mixed typed questions (including 2 situational) with no feedback until the end, then a review where the user sees each model answer and self-grades.
