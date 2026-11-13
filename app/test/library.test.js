@@ -31,3 +31,8 @@ test('publication index is parsed', () => {
   assert.match(adp.title, /Army Leadership/);
   assert.ok(lib.pubs.length > 30);
 });
+
+test('library carries the category list for the app', () => {
+  assert.deepStrictEqual(lib.categories.map((c) => c.name), ['Board & Basics', 'Leadership & Policy', 'Fitness & Training', 'Soldier Skills', 'Unit & History', 'Situational', 'Corrections']);
+  assert.deepStrictEqual(lib.categories[2].sections, ['h2f', 'training']);
+});

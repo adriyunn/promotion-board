@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { ORDER } = require('../guide/order');
 const { extractQAs, extractScenarios, extractCorrections, stripTags, NUM } = require('./extract');
-const { categoryOf } = require('./categories');
+const { categoryOf, CATEGORIES } = require('./categories');
 
 const root = path.join(__dirname, '..');
 const sec = (n) => fs.readFileSync(path.join(root, 'guide/sections', n + '.html'), 'utf8');
@@ -78,7 +78,8 @@ function buildLibrary() {
   const pubs = [...idx.slice(idx.indexOf('<h3>Publication types')).matchAll(/<tr><td>([^<]+)<\/td><td>([^<]+)<\/td><td>([^<]+)<\/td><\/tr>/g)]
     .map((m) => ({ id: stripTags(m[1]).text, title: stripTags(m[2]).text, date: stripTags(m[3]).text }));
 
-  return { sections, start, must, plan, pubs };
+  const categories = CATEGORIES.map(([name, keys]) => ({ name, sections: keys }));
+  return { sections, start, must, plan, pubs, categories };
 }
 
 function writeJSON(rel, data) {
