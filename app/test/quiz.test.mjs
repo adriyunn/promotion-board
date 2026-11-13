@@ -82,8 +82,8 @@ test('pickBoardSim gives 15 typed turns, 2 scenarios, 8+ sections', () => {
 test('sectionProgress counts total, seen and mastered', () => {
   const state = { items: { 'a-01': { seen: 2, last: true }, 'a-02': { seen: 1, last: false } }, favs: [], fields: {} };
   const p = sectionProgress(small, state);
-  assert.deepStrictEqual(p.a, { total: 5, seen: 2, mastered: 1 });
-  assert.deepStrictEqual(p.b, { total: 5, seen: 0, mastered: 0 });
+  assert.deepStrictEqual([p.a.total, p.a.seen, p.a.mastered], [5, 2, 1]);
+  assert.deepStrictEqual([p.b.total, p.b.seen, p.b.mastered], [5, 0, 0]);
 });
 
 test('daysUntil counts whole days and floors at 0', () => {
@@ -91,4 +91,16 @@ test('daysUntil counts whole days and floors at 0', () => {
   assert.strictEqual(daysUntil('2026-11-20', new Date('2026-11-13T23:59:00')), 7);
   assert.strictEqual(daysUntil('2026-11-20', new Date('2026-11-20T08:00:00')), 0);
   assert.strictEqual(daysUntil('2026-11-20', new Date('2026-11-25T08:00:00')), 0);
+});
+
+test('sectionProgress also reports answers and right answers for percent correct', () => {
+  const state = { items: { 'a-01': { seen: 4, right: 3, last: true }, 'a-02': { seen: 2, right: 0, last: false } }, favs: [], fields: {} };
+  const p = sectionProgress(small, state);
+  assert.strictEqual(p.a.answers, 6);
+  assert.strictEqual(p.a.right, 3);
+  assert.strictEqual(p.b.answers, 0);
+});
+
+test('an explicit empty section list selects nothing', () => {
+  assert.deepStrictEqual(pickQuestions(small, emptyState, { sections: [], source: 'all', mode: 'mixed', count: 'all' }), []);
 });

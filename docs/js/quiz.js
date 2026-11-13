@@ -35,7 +35,7 @@ const toTurn = (item, kind, rand) => (kind === 'mc' ? { item, kind, choices: shu
 export function pickQuestions(bank, state, opts, rand = Math.random) {
   const { sections, source = 'all', mode = 'mixed', count = 10, today = todayISO() } = opts;
   let pool = bank;
-  if (sections && sections.length) pool = pool.filter((i) => sections.includes(i.section));
+  if (sections) pool = pool.filter((i) => sections.includes(i.section));
   if (source === 'missed') pool = pool.filter((i) => state.items[i.id]?.missed);
   if (source === 'favs') pool = pool.filter((i) => state.favs.includes(i.id));
   if (source === 'due') { const due = new Set(dueIds(state, today)); pool = pool.filter((i) => due.has(i.id)); }
@@ -62,11 +62,12 @@ export const gradeMC = (turn, choice) => choice === turn.item.a;
 export function sectionProgress(bank, state) {
   const out = {};
   for (const i of bank) {
-    const p = out[i.section] || (out[i.section] = { total: 0, seen: 0, mastered: 0 });
+    const p = out[i.section] || (out[i.section] = { total: 0, seen: 0, mastered: 0, answers: 0, right: 0 });
     p.total++;
     const s = state.items[i.id];
     if (s && s.seen) p.seen++;
     if (s && s.last === true) p.mastered++;
+    if (s) { p.answers += s.seen || 0; p.right += s.right || 0; }
   }
   return out;
 }

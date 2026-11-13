@@ -31,6 +31,7 @@ function route() {
   document.querySelectorAll('nav.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
   const needsSession = ['session', 'results', 'board'].includes(name);
   if (needsSession && !ctx.session) return ctx.go('#/home');
+  if ((name === 'session' || name === 'board') && ctx.session.done) return location.replace('#/results');
   switch (name) {
     case 'topics': return topics.render(root, ctx);
     case 'topic': return topics.renderTopic(root, ctx, arg);

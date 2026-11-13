@@ -83,3 +83,13 @@ test('reset clears everything', () => {
   s.reset();
   assert.deepStrictEqual(s.get(), { items: {}, favs: [], fields: {} });
 });
+
+test('a right answer before the item is due does not advance the box', () => {
+  const s = createStore(fakeStorage());
+  s.record('a', false, '2026-11-13');
+  s.record('a', true, '2026-11-13');
+  s.record('a', true, '2026-11-13');
+  s.record('a', true, '2026-11-13');
+  const it = s.get().items.a;
+  assert.deepStrictEqual([it.missed, it.box, it.due, it.right], [true, 1, '2026-11-14', 3]);
+});

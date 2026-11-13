@@ -1,4 +1,4 @@
-import { el, view, topbar, esc } from '../ui.js';
+import { el, view, topbar, esc, tap } from '../ui.js';
 import { todayISO } from '../store.js';
 import { modelAnswer, sectionTitle } from './session.js';
 
@@ -15,22 +15,26 @@ export function render(root, ctx) {
       el('div', { class: 'qtext' }, turn.item.q),
       el('div', { class: 'say' }, 'Say it out loud first, then type or tap Next. No answers until the end.'),
       box,
-      el('div', { class: 'actions' }, el('button', { class: 'btn gold', onclick: () => { s.answers[s.i] = box.value; s.i++; render(root, ctx); } }, last ? 'Finish →' : 'Next →'))));
+      el('div', { class: 'actions' }, el('button', { class: 'btn gold', onclick: tap(() => { s.answers[s.i] = box.value; s.i++; render(root, ctx); }) }, last ? 'Finish →' : 'Next →'))));
 }
 
 function review(root, ctx) {
   const s = ctx.session;
   s.results = s.results || [];
   const graded = new Map();
+  const snaps = new Map();
   const done = el('button', { class: 'btn gold', disabled: true, onclick: () => {
     s.results = s.turns.map((t, i) => ({ item: t.item, ok: graded.get(i) }));
+    s.done = true;
     ctx.go('#/results');
   } }, 'See results →');
   const rows = s.turns.map((t, i) => {
     const btns = el('div', { class: 'actions two' });
     const grade = (ok) => {
-      if (!graded.has(i)) ctx.store.record(t.item.id, ok, todayISO());
-      else if (graded.get(i) !== ok) ctx.store.record(t.item.id, ok, todayISO());
+      if (graded.get(i) === ok) return;
+      if (!snaps.has(i)) { const cur = ctx.store.get().items[t.item.id]; snaps.set(i, cur ? { ...cur } : null); }
+      else ctx.store.restoreItem(t.item.id, snaps.get(i));
+      ctx.store.record(t.item.id, ok, todayISO());
       graded.set(i, ok);
       btns.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ok === String(ok))));
       done.disabled = graded.size < s.turns.length;

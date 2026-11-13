@@ -34,3 +34,10 @@ export function studySections(library) {
 export function meter(frac) {
   return el('span', { class: 'right' }, el('span', { class: 'meter' }, el('i', { style: `width:${Math.round(frac * 100)}%` })), el('span', { class: 'pct' }, `${Math.round(frac * 100)}%`));
 }
+
+// Click handler that ignores taps in the first 350 ms after the button is created,
+// so a double-tap can't hit the button that replaces it on the next screen.
+export function tap(fn, delay = 350) {
+  const born = performance.now();
+  return (e) => { if (performance.now() - born < delay) return; fn(e); };
+}

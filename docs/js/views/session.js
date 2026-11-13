@@ -1,4 +1,4 @@
-import { el, view, topbar, esc, tagHTML } from '../ui.js';
+import { el, view, topbar, esc, tagHTML, tap } from '../ui.js';
 import { gradeMC } from '../quiz.js';
 import { todayISO } from '../store.js';
 
@@ -28,7 +28,7 @@ export function render(root, ctx) {
   const last = s.i === s.turns.length - 1;
   const next = () => { if (last) ctx.go('#/results'); else { s.i++; render(root, ctx); } };
   const record = (ok) => { ctx.store.record(turn.item.id, ok, todayISO()); s.results.push({ item: turn.item, ok }); };
-  const nextBtn = () => el('button', { class: 'btn gold', onclick: next }, last ? 'See results →' : 'Next →');
+  const nextBtn = () => el('button', { class: 'btn gold', onclick: tap(next) }, last ? 'See results →' : 'Next →');
 
   const card = el('div', { class: 'qcard' }, el('div', { class: 'qtext' }, turn.item.q));
   const after = el('div', {});
@@ -47,16 +47,16 @@ export function render(root, ctx) {
   } else {
     const box = el('textarea', { placeholder: 'Type your answer (or leave blank and say it out loud)', 'aria-label': 'Your answer' });
     const check = el('button', { class: 'btn gold' }, 'Check answer');
-    check.onclick = () => {
+    check.onclick = tap(() => {
       box.readOnly = true; check.remove();
       const grade = (ok) => { record(ok); next(); };
       after.append(el('div', { class: 'reveal' },
         el('div', { class: 'ans', html: `<h4>You wrote</h4>${esc(box.value.trim() || '(said it out loud)')}` }),
         modelAnswer(turn.item)),
         el('div', { class: 'actions two' },
-          el('button', { class: 'btn ok', onclick: () => grade(true) }, '✅ I got it'),
-          el('button', { class: 'btn bad', onclick: () => grade(false) }, '❌ I missed it')));
-    };
+          el('button', { class: 'btn ok', onclick: tap(() => grade(true)) }, '✅ I got it'),
+          el('button', { class: 'btn bad', onclick: tap(() => grade(false)) }, '❌ I missed it')));
+    });
     card.append(el('div', { class: 'say' }, 'Say it out loud first, then type or tap Check.'), box, el('div', { class: 'actions' }, check));
   }
   card.append(after);

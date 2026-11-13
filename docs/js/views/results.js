@@ -3,6 +3,7 @@ import { modelAnswer } from './session.js';
 
 export function render(root, ctx) {
   const s = ctx.session;
+  s.done = true;
   const res = s.results;
   const right = res.filter((r) => r.ok).length;
   const missed = res.filter((r) => !r.ok);

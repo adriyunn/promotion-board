@@ -7,6 +7,7 @@ const BASE = 'http://localhost:4173/';
 const NOW = new Date('2026-11-13T12:00:00');
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
+const human = (page) => page.waitForTimeout(400); // people don't tap a button the instant it appears
 
 async function open(browser, hash = '#/home', ctxOpts = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, ...ctxOpts });
@@ -61,6 +62,7 @@ test('quick 10 multiple choice runs to a results page', async (b) => {
   for (let i = 0; i < 10; i++) {
     await page.waitForSelector('[data-view="session"] .choice');
     await page.locator('.choice').first().click();
+    await human(page);
     await page.locator('.actions .btn.gold').click();
   }
   await page.waitForSelector('[data-view="results"]');
@@ -73,8 +75,10 @@ test('typed answer: empty check reveals model answer; a miss survives reload', a
   await page.getByRole('button', { name: 'Type answers' }).click();
   await page.waitForSelector('[data-view="session"] textarea');
   assert.match(await page.textContent('[data-view="session"]'), /Say it out loud first/);
+  await human(page);
   await page.getByRole('button', { name: 'Check answer' }).click();
   assert.match(await page.textContent('[data-view="session"]'), /Model answer/);
+  await human(page);
   await page.getByRole('button', { name: /I missed it/ }).click();
   await page.goto(BASE + '#/home');
   await page.waitForSelector('[data-view="home"]');
@@ -103,6 +107,7 @@ test('board sim: 15 questions, no answers until review, review grades', async (b
     assert.ok(!/Model answer/.test(t), 'answer shown before review');
     assert.match(t, new RegExp(`${i + 1} / 15`));
     await page.fill('textarea', 'my answer ' + i);
+    await human(page);
     await page.getByRole('button', { name: /Next|Finish/ }).click();
   }
   await page.waitForSelector('[data-view="board-review"]');
@@ -173,7 +178,9 @@ test('library: about-yourself box saves', async (b) => {
 test('progress: 25 rows and reset clears misses', async (b) => {
   const { ctx, page } = await open(b, '#/topic/sharp');
   await page.getByRole('button', { name: 'Type answers' }).click();
+  await human(page);
   await page.getByRole('button', { name: 'Check answer' }).click();
+  await human(page);
   await page.getByRole('button', { name: /I missed it/ }).click();
   await page.locator('nav.tabs a', { hasText: 'Progress' }).click();
   await page.waitForSelector('[data-view="progress"]');
@@ -200,6 +207,7 @@ test('single offline file opens and runs a quick 10', async (b) => {
   for (let i = 0; i < 10; i++) {
     await page.waitForSelector('[data-view="session"] .choice');
     await page.locator('.choice').first().click();
+    await human(page);
     await page.locator('.actions .btn.gold').click();
   }
   await page.waitForSelector('[data-view="results"]');
@@ -232,6 +240,77 @@ test('manifest and icons are linked for add-to-home-screen', async (b) => {
   assert.strictEqual(m.display, 'standalone');
   for (const icon of m.icons) assert.strictEqual((await page.request.get(BASE + icon.src)).status(), 200);
   assert.strictEqual((await page.request.get(BASE + (await page.getAttribute('link[rel="apple-touch-icon"]', 'href')))).status(), 200);
+  await ctx.close();
+});
+
+// ---------- Final review fixes ----------
+test('board sim: changing a grade records only the final grade', async (b) => {
+  const { ctx, page } = await open(b);
+  await page.getByRole('button', { name: /Board Sim/ }).click();
+  for (let i = 0; i < 15; i++) { await page.waitForSelector('[data-view="board"] textarea'); await human(page); await page.locator('.actions .btn.gold').click(); }
+  await page.waitForSelector('[data-view="board-review"]');
+  const first = page.locator('.review-row').first();
+  await first.getByRole('button', { name: /missed/i }).click();
+  await first.getByRole('button', { name: /got it/i }).click();
+  for (let i = 1; i < 15; i++) await page.locator('.review-row').nth(i).getByRole('button', { name: /got it/i }).click();
+  await page.goto(BASE + '#/home');
+  await page.waitForSelector('[data-view="home"]');
+  assert.ok(await page.getByRole('button', { name: /Missed \(0\)/ }).isVisible());
+  await ctx.close();
+});
+
+test('board sim: a double-tap on Next does not skip a question', async (b) => {
+  const { ctx, page } = await open(b);
+  await page.getByRole('button', { name: /Board Sim/ }).click();
+  await page.waitForSelector('[data-view="board"] textarea');
+  await human(page);
+  // Second tap lands on whatever Next button is under the finger right after the re-render.
+  await page.evaluate(() => { document.querySelector('.actions .btn.gold').click(); document.querySelector('.actions .btn.gold').click(); });
+  await page.waitForSelector('[data-view="board"] textarea');
+  assert.match(await page.textContent('.qhead'), /^2 \/ 15/);
+  await ctx.close();
+});
+
+test('back button after results does not replay the session', async (b) => {
+  const { ctx, page } = await open(b);
+  await page.getByRole('button', { name: 'Quick 10' }).click();
+  for (let i = 0; i < 10; i++) { await page.waitForSelector('[data-view="session"] .choice'); await page.locator('.choice').first().click(); await human(page); await page.locator('.actions .btn.gold').click(); }
+  await page.waitForSelector('[data-view="results"]');
+  await page.goBack();
+  await page.waitForTimeout(300);
+  assert.strictEqual(await page.locator('[data-view="session"]').count(), 0);
+  await ctx.close();
+});
+
+test('test setup: unchecking every topic means nothing to start', async (b) => {
+  const { ctx, page } = await open(b, '#/test');
+  await page.getByLabel('All topics').uncheck();
+  assert.match(await page.textContent('[data-view="test"]'), /Nothing here yet/);
+  assert.ok(await page.getByRole('button', { name: /Begin test/ }).isDisabled());
+  await ctx.close();
+});
+
+test('library inputs are at least 16px so iPhone does not zoom', async (b) => {
+  const { ctx, page } = await open(b, '#/library/coc');
+  const size = await page.locator('.lib td.blank input').first().evaluate((n) => parseFloat(getComputedStyle(n).fontSize));
+  assert.ok(size >= 16, String(size));
+  await ctx.close();
+});
+
+test('progress shows percent correct overall', async (b) => {
+  const { ctx, page } = await open(b, '#/topic/sharp');
+  await page.getByRole('button', { name: 'Type answers' }).click();
+  await human(page);
+  await page.getByRole('button', { name: 'Check answer' }).click();
+  await human(page);
+  await page.getByRole('button', { name: /I got it/ }).click();
+  await human(page);
+  await page.getByRole('button', { name: 'Check answer' }).click();
+  await human(page);
+  await page.getByRole('button', { name: /I missed it/ }).click();
+  await page.locator('nav.tabs a', { hasText: 'Progress' }).click();
+  await page.waitForSelector('[data-view="progress"]');
+  assert.match(await page.textContent('[data-view="progress"]'), /Correct\s*50%/);
   await ctx.close();
 });
 

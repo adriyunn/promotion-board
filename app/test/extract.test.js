@@ -56,3 +56,14 @@ test('no markup, template tokens or tag words leak into any item', () => {
     }
   }
 });
+
+test('board-06 (miniature badges) keeps the Verify tag from its source row', () => {
+  const items = extractQAs(sec('board'), 'board');
+  assert.ok(items[5].tags.includes('verify'), JSON.stringify(items[5]));
+});
+
+test('service worker fetches fresh copies when installing a new version', () => {
+  require('child_process').execFileSync('node', [path.join(__dirname, '../build-sw.js')]);
+  const sw = fs.readFileSync(path.join(__dirname, '../../docs/sw.js'), 'utf8');
+  assert.match(sw, /cache: 'reload'/);
+});

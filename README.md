@@ -33,6 +33,8 @@ Progress, favorites and the names you type in stay only on your phone (browser s
 
 After the first visit it works without signal.
 
+**Add it to your home screen first, then study only from the home-screen icon.** On iPhone the home-screen app keeps its own storage, separate from the Safari tab, so progress made in Safari won't carry over.
+
 ### Offline backup file
 
 Download `Steadfast_Board_Prep_offline.html` to your phone and open it in the browser. It needs no internet at all. On iPhone, progress may not be saved when it's opened as a file, so use the website as your main copy.

@@ -48,7 +48,7 @@ export function createStore(storage = globalThis.localStorage) {
         it.wrong++; it.streak = 0; it.missed = true; it.box = 1; it.due = addDays(today, 1);
       } else {
         it.right++; it.streak++;
-        if (it.missed) {
+        if (it.missed && it.due && it.due <= today) {
           it.box++;
           if (it.box > 3) { it.missed = false; it.due = null; it.box = 0; }
           else it.due = addDays(today, INTERVAL[it.box]);
@@ -56,6 +56,8 @@ export function createStore(storage = globalThis.localStorage) {
       }
       save();
     },
+    // Put an item's stats back to an earlier copy (null = never answered). Used when a grade is changed.
+    restoreItem(id, snap) { if (snap) state.items[id] = { ...snap }; else delete state.items[id]; save(); },
     toggleFav(id) {
       const i = state.favs.indexOf(id);
       if (i >= 0) state.favs.splice(i, 1); else state.favs.push(id);
