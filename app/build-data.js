@@ -15,6 +15,10 @@ function buildBank() {
     bank.push(...(n === 'scenarios' ? extractScenarios(sec(n)) : extractQAs(sec(n), n)));
   }
   bank.push(...extractCorrections(sec('start')));
+  const D = JSON.parse(fs.readFileSync(path.join(__dirname, 'distractors.json'), 'utf8'));
+  for (const it of bank) {
+    if (D[it.id] && it.section !== 'scenarios') { it.mc = true; it.choices = [it.a, ...D[it.id]]; }
+  }
   return bank;
 }
 
