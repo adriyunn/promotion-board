@@ -61,7 +61,7 @@ test('quick 10 multiple choice runs to a results page', async (b) => {
   for (let i = 0; i < 10; i++) {
     await page.waitForSelector('[data-view="session"] .choice');
     await page.locator('.choice').first().click();
-    await page.getByRole('button', { name: /Next|See results/ }).click();
+    await page.locator('.actions .btn.gold').click();
   }
   await page.waitForSelector('[data-view="results"]');
   assert.match(await page.textContent('[data-view="results"]'), /\/ 10/);
@@ -116,6 +116,72 @@ test('board sim: 15 questions, no answers until review, review grades', async (b
   await page.goto(BASE + '#/home');
   await page.waitForSelector('[data-view="home"]');
   assert.ok(await page.getByRole('button', { name: /Missed \(1\)/ }).isVisible());
+  await ctx.close();
+});
+
+// ---------- Task 7: test setup, library, progress ----------
+test('test setup: empty missed pool disables Begin', async (b) => {
+  const { ctx, page } = await open(b, '#/test');
+  await page.getByRole('button', { name: 'Missed', exact: true }).click();
+  assert.match(await page.textContent('[data-view="test"]'), /Nothing here yet/);
+  assert.ok(await page.getByRole('button', { name: /Begin test/ }).isDisabled());
+  await ctx.close();
+});
+
+test('test setup: typed, one category, 10 questions starts a session', async (b) => {
+  const { ctx, page } = await open(b, '#/test');
+  await page.getByRole('button', { name: 'Typed', exact: true }).click();
+  await page.getByRole('button', { name: '10', exact: true }).click();
+  await page.getByLabel('All topics').uncheck();
+  await page.getByLabel('Soldier Skills').check();
+  await page.getByRole('button', { name: /Begin test/ }).click();
+  await page.waitForSelector('[data-view="session"] textarea');
+  assert.match(await page.textContent('.qhead'), /Q 1\/10/);
+  await ctx.close();
+});
+
+test('library: must-know list, sections, and publications', async (b) => {
+  const { ctx, page } = await open(b, '#/library');
+  const rows = page.locator('.lib-row');
+  assert.match(await rows.first().textContent(), /Must know review/);
+  assert.strictEqual(await rows.count(), 29); // must + start + 26 sections + publications
+  await rows.first().click();
+  await page.waitForSelector('[data-view="library-page"]');
+  assert.ok(await page.locator('.must-block').count() > 20);
+  await ctx.close();
+});
+
+test('library: chain of command fill-in survives reload', async (b) => {
+  const { ctx, page } = await open(b, '#/library/coc');
+  const first = page.locator('.lib td.blank input').first();
+  await first.fill('MG Ellis');
+  await page.reload();
+  await page.waitForSelector('.lib td.blank input');
+  assert.strictEqual(await page.locator('.lib td.blank input').first().inputValue(), 'MG Ellis');
+  await ctx.close();
+});
+
+test('library: about-yourself box saves', async (b) => {
+  const { ctx, page } = await open(b, '#/library/nco');
+  await page.fill('textarea[name="intro"]', 'Specialist, 11B, Team Leader');
+  await page.reload();
+  await page.waitForSelector('textarea[name="intro"]');
+  assert.strictEqual(await page.inputValue('textarea[name="intro"]'), 'Specialist, 11B, Team Leader');
+  await ctx.close();
+});
+
+test('progress: 25 rows and reset clears misses', async (b) => {
+  const { ctx, page } = await open(b, '#/topic/sharp');
+  await page.getByRole('button', { name: 'Type answers' }).click();
+  await page.getByRole('button', { name: 'Check answer' }).click();
+  await page.getByRole('button', { name: /I missed it/ }).click();
+  await page.locator('nav.tabs a', { hasText: 'Progress' }).click();
+  await page.waitForSelector('[data-view="progress"]');
+  assert.strictEqual(await page.locator('.progress-row').count(), 25);
+  assert.match(await page.textContent('[data-view="progress"]'), /Missed\s*1/);
+  page.once('dialog', (d) => d.accept());
+  await page.getByRole('button', { name: /Reset progress/ }).click();
+  assert.match(await page.textContent('[data-view="progress"]'), /Missed\s*0/);
   await ctx.close();
 });
 
